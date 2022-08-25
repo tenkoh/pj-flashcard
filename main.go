@@ -1,13 +1,21 @@
 package main
 
 import (
+	"embed"
 	"errors"
-	"fmt"
+	"io/fs"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
 )
 
 const (
 	MAX_FLASHCARD = 1<<32 - 1
 )
+
+//all directive is required to embed _files
+//go:embed all:frontend/out/*
+var embededFiles embed.FS
 
 var (
 	ErrInvalidCardBinder = errors.New("cardBinder must have a title")
@@ -91,6 +99,22 @@ func (binder *CardBinder) Edit(id int, word, content string, mastered bool) erro
 	return nil
 }
 
+func getFileSystem() (http.FileSystem, error) {
+	fsys, err := fs.Sub(embededFiles, "frontend/out")
+	if err != nil {
+		return nil, err
+	}
+	return http.FS(fsys), nil
+}
+
 func main() {
-	fmt.Println("Hello world")
+	e := echo.New()
+	fsys, err := getFileSystem()
+	if err != nil {
+		panic(err)
+	}
+	assetHandler := http.FileServer(fsys)
+	e.GET("/", echo.WrapHandler(assetHandler))
+	e.GET("/_next/*", echo.WrapHandler(assetHandler))
+	e.Logger.Fatal(e.Start(":1323"))
 }
