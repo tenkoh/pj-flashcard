@@ -10,76 +10,84 @@ const (
 )
 
 var (
-	ErrInvalidNotebook   = errors.New("notebook must have a title")
-	ErrEmptyFlashcard    = errors.New("empty flashcard. it must have both word and content")
-	ErrNonExistFlashcard = errors.New("the flashcard does not exist")
-	ErrFullFlashcards    = errors.New("no more flashcards could be inserted in the notebook")
+	ErrInvalidCardBinder = errors.New("cardBinder must have a title")
+	ErrFullCardBinder    = errors.New("no more cards could be inserted in the cardBinder")
+	ErrEmptyCard         = errors.New("empty card. it must have both word and content")
+	ErrNonExistCard      = errors.New("the card does not exist")
 )
 
-type Notebook struct {
-	ID          int
+type App struct {
+	Binders map[int]*CardBinder
+}
+
+type CardBinder struct {
 	Title       string
 	Description string
-	Flashcards  map[int]*Flashcard
+	Cards       map[int]*Card
 	nextID      int
 }
 
-type Flashcard struct {
+type Card struct {
 	Word     string
 	Content  string
 	Mastered bool
 }
 
-func NewNotebook(id int, title, description string) (*Notebook, error) {
-	if title == "" {
-		return nil, ErrInvalidNotebook
+func NewApp() *App {
+	return &App{
+		Binders: map[int]*CardBinder{},
 	}
-	nb := &Notebook{
-		ID:          id,
+}
+
+func NewCardBinder(title, description string) (*CardBinder, error) {
+	if title == "" {
+		return nil, ErrInvalidCardBinder
+	}
+	nb := &CardBinder{
 		Title:       title,
 		Description: description,
-		Flashcards:  map[int]*Flashcard{},
+		Cards:       map[int]*Card{},
 		nextID:      0,
 	}
 	return nb, nil
 }
 
-func (nb *Notebook) Add(word, content string) (int, error) {
+func (binder *CardBinder) Add(word, content string) (int, error) {
 	if word == "" || content == "" {
-		return 0, ErrEmptyFlashcard
+		return 0, ErrEmptyCard
 	}
-	if nb.nextID >= MAX_FLASHCARD {
-		return MAX_FLASHCARD, ErrFullFlashcards
+	if binder.nextID >= MAX_FLASHCARD {
+		return MAX_FLASHCARD, ErrFullCardBinder
 	}
-	card := &Flashcard{
+	card := &Card{
 		Word:     word,
 		Content:  content,
 		Mastered: false,
 	}
-	nb.Flashcards[nb.nextID] = card
-	nb.nextID = nb.nextID + 1
-	return nb.nextID - 1, nil
+	binder.Cards[binder.nextID] = card
+	binder.nextID = binder.nextID + 1
+	return binder.nextID - 1, nil
 }
 
-func (nb *Notebook) Delete(id int) error {
-	_, exist := nb.Flashcards[id]
+func (binder *CardBinder) Delete(id int) error {
+	_, exist := binder.Cards[id]
 	if !exist {
-		return ErrNonExistFlashcard
+		return ErrNonExistCard
 	}
-	delete(nb.Flashcards, id)
+	delete(binder.Cards, id)
 	return nil
 }
 
-func (nb *Notebook) Edit(id int, word, content string, mastered bool) error {
-	_, exist := nb.Flashcards[id]
+func (binder *CardBinder) Edit(id int, word, content string, mastered bool) error {
+	_, exist := binder.Cards[id]
 	if !exist {
-		return ErrNonExistFlashcard
+		return ErrNonExistCard
 	}
-	c := nb.Flashcards[id]
+	c := binder.Cards[id]
 	c.Word = word
 	c.Content = content
 	c.Mastered = mastered
-	nb.Flashcards[id] = c
+	binder.Cards[id] = c
 	return nil
 }
 
